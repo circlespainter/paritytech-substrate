@@ -411,11 +411,29 @@ impl<Block: BlockT> HeaderMetadata<Block> for BlockchainDb<Block> {
 	fn header_metadata(&self, hash: Block::Hash) -> Result<CachedHeaderMetadata<Block>, Self::Error> {
 		self.header_metadata_cache.header_metadata(hash).or_else(|_| {
 			self.header(BlockId::hash(hash))?.map(|header| {
-				let header_metadata = CachedHeaderMetadata::from(&header);
+				let mut parent_section = header.parent_hash().clone();
+				if *header.number() % NumberFor::<Block>::from(5_000)
+					!= NumberFor::<Block>::zero() {
+					if let Ok(parent) = self.header_metadata_cache.header_metadata(
+						header.parent_hash().clone()
+					) {
+						parent_section = parent.ancestor;
+					}
+				}
+
+				// let header_metadata = CachedHeaderMetadata::from(&header);
+				let header_metadata = CachedHeaderMetadata {
+					hash: hash.clone(),
+					number: header.number().clone(),
+					parent: header.parent_hash().clone(),
+					ancestor: parent_section,
+				};
+
 				self.header_metadata_cache.insert_header_metadata(
 					header_metadata.hash,
 					header_metadata.clone(),
 				);
+
 				header_metadata
 			}).ok_or(client::error::Error::UnknownBlock("header not found in db".to_owned()))
 		})

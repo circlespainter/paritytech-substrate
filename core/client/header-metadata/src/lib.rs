@@ -82,17 +82,17 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 
 	// Update cached ancestor links.
 
-	if orig_header_one.number > header_one.number {
-		orig_header_one.ancestor = header_one.hash;
-		info!("LCA update {:?}", orig_header_one);
-		backend.insert_header_metadata(orig_header_one.hash, orig_header_one);
-	}
+	// if orig_header_one.number > header_one.number {
+	// 	orig_header_one.ancestor = header_one.hash;
+	// 	info!("LCA update {:?}", orig_header_one);
+	// 	backend.insert_header_metadata(orig_header_one.hash, orig_header_one);
+	// }
 
-	if orig_header_two.number > header_one.number {
-		orig_header_two.ancestor = header_one.hash;
-		info!("LCA update {:?}", orig_header_two);
-		backend.insert_header_metadata(orig_header_two.hash, orig_header_two);
-	}
+	// if orig_header_two.number > header_one.number {
+	// 	orig_header_two.ancestor = header_one.hash;
+	// 	info!("LCA update {:?}", orig_header_two);
+	// 	backend.insert_header_metadata(orig_header_two.hash, orig_header_two);
+	// }
 
 	Ok(HashAndNumber {
 		hash: header_one.hash,
@@ -280,7 +280,7 @@ pub struct CachedHeaderMetadata<Block: BlockT> {
 	/// Hash of parent header.
 	pub parent: Block::Hash,
 	/// Hash of an ancestor header. Used to jump through the tree.
-	ancestor: Block::Hash,
+	pub ancestor: Block::Hash,
 }
 
 impl<Block: BlockT> From<&Block::Header> for CachedHeaderMetadata<Block> {
