@@ -20,9 +20,10 @@
 use sr_primitives::traits::{Block as BlockT, NumberFor, Header};
 use parking_lot::RwLock;
 use lru_cache::LruCache;
+use log::info;
 
 /// Set to the expected max difference between `best` and `finalized` blocks at sync.
-const LRU_CACHE_SIZE: usize = 5_000;
+const LRU_CACHE_SIZE: usize = 100_000;
 
 /// Get lowest common ancestor between two blocks in the tree.
 ///
@@ -35,8 +36,11 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 	id_one: Block::Hash,
 	id_two: Block::Hash,
 ) -> Result<HashAndNumber<Block>, T::Error> {
+	info!("LCA start {} {}", id_one, id_two);
 	let mut header_one = backend.header_metadata(id_one)?;
 	let mut header_two = backend.header_metadata(id_two)?;
+
+	info!("LCA meta {:?} {:?}", header_one, header_two);
 
 	let mut orig_header_one = header_one.clone();
 	let mut orig_header_two = header_two.clone();
@@ -45,7 +49,7 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 
 	while header_one.number > header_two.number {
 		let ancestor_one = backend.header_metadata(header_one.ancestor)?;
-
+		info!("LCA ancestor {:?}", ancestor_one);
 		if ancestor_one.number >= header_two.number {
 			header_one = ancestor_one;
 		} else {
@@ -55,7 +59,8 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 
 	while header_one.number < header_two.number {
 		let ancestor_two = backend.header_metadata(header_two.ancestor)?;
-
+		info!("LCA ancestor {:?}", ancestor_two);
+		
 		if ancestor_two.number >= header_one.number {
 			header_two = ancestor_two;
 		} else {
@@ -66,6 +71,8 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 	// Then we move the remaining path using parent links.
 
 	while header_one.hash != header_two.hash {
+		info!("LCA parent {:?} {:?}", header_one, header_two);
+		
 		if header_one.number > header_two.number {
 			header_one = backend.header_metadata(header_one.parent)?;
 		} else {
@@ -77,11 +84,13 @@ pub fn lowest_common_ancestor<Block: BlockT, T: HeaderMetadata<Block>>(
 
 	if orig_header_one.number > header_one.number {
 		orig_header_one.ancestor = header_one.hash;
+		info!("LCA update {:?}", orig_header_one);
 		backend.insert_header_metadata(orig_header_one.hash, orig_header_one);
 	}
 
 	if orig_header_two.number > header_one.number {
 		orig_header_two.ancestor = header_one.hash;
+		info!("LCA update {:?}", orig_header_two);
 		backend.insert_header_metadata(orig_header_two.hash, orig_header_two);
 	}
 
@@ -225,6 +234,7 @@ pub struct HeaderMetadataCache<Block: BlockT> {
 impl<Block: BlockT> HeaderMetadataCache<Block> {
 	/// Creates a new LRU header metadata cache with `capacity`.
 	pub fn new(capacity: usize) -> Self {
+		info!("CREATING CACHE WITH {}", capacity);
 		HeaderMetadataCache {
 			cache: RwLock::new(LruCache::new(capacity)),
 		}
@@ -233,6 +243,7 @@ impl<Block: BlockT> HeaderMetadataCache<Block> {
 
 impl<Block: BlockT> Default for HeaderMetadataCache<Block> {
 	fn default() -> Self {
+		info!("CREATING CACHE WITH {}", LRU_CACHE_SIZE);
 		HeaderMetadataCache {
 			cache: RwLock::new(LruCache::new(LRU_CACHE_SIZE)),
 		}
@@ -243,11 +254,14 @@ impl<Block: BlockT> HeaderMetadata<Block> for HeaderMetadataCache<Block> {
 	type Error = String;
 
 	fn header_metadata(&self, hash: Block::Hash) -> Result<CachedHeaderMetadata<Block>, Self::Error> {
-		self.cache.write().get_mut(&hash).cloned()
-			.ok_or("header metadata not found in cache".to_owned())
+		let r = self.cache.write().get_mut(&hash).cloned()
+			.ok_or("header metadata not found in cache".to_owned());
+		info!("GET {:?}", r);
+		r
 	}
 
 	fn insert_header_metadata(&self, hash: Block::Hash, metadata: CachedHeaderMetadata<Block>) {
+		info!("PUT {:?} {:?}", hash, metadata);
 		self.cache.write().insert(hash, metadata);
 	}
 
