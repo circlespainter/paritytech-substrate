@@ -1133,11 +1133,11 @@ impl<Block: BlockT<Hash=H256>> Backend<Block> {
 				hash,
 			)?;
 
-			let header_metadata = CachedHeaderMetadata::from(&pending_block.header);
-			self.blockchain.insert_header_metadata(
-				header_metadata.hash,
-				header_metadata,
-			);
+			// let header_metadata = CachedHeaderMetadata::from(&pending_block.header);
+			// self.blockchain.insert_header_metadata(
+			// 	header_metadata.hash,
+			// 	header_metadata,
+			// );
 
 			transaction.put(columns::HEADER, &lookup_key, &pending_block.header.encode());
 			if let Some(body) = pending_block.body {
