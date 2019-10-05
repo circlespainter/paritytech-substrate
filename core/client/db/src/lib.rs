@@ -412,8 +412,8 @@ impl<Block: BlockT> HeaderMetadata<Block> for BlockchainDb<Block> {
 		self.header_metadata_cache.header_metadata(hash).or_else(|_| {
 			self.header(BlockId::hash(hash))?.map(|header| {
 				let mut parent_section = header.parent_hash().clone();
-				if *header.number() % NumberFor::<Block>::from(5_000)
-					!= NumberFor::<Block>::zero() {
+				if *header.number() % NumberFor::<Block>::from(1_000)
+					!= NumberFor::<Block>::zero() && *header.number() > NumberFor::<Block>::one() {
 					if let Ok(parent) = self.header_metadata(
 						header.parent_hash().clone()
 					) {
